@@ -1,6 +1,7 @@
 # Gen
 
-A c++20 arbitrary compile time execution and code generation library currently only supports msvc with visual studio.
+A c++20 arbitrary compile time execution and code generation library. 
+Currently only supports msvc with visual studio.
 
 
 # Dependencies
