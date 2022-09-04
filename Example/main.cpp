@@ -1,26 +1,63 @@
-#include <iostream>
-#include <vector>
+#include <Gen/Core/System.h>
 
+#ifndef __clang__
+
+#include <iostream>
+
+import GenerateExamples;
 import MyEnum;
 import Shape;
 import MyClass;
-import PostGenerate;
+import Material;
 
-struct D : Shape 
+class Rect : Shape
 {
-	virtual void area() const override {};
-	virtual double scale_by(double facto) const noexcept override { return 0.0; };
-	virtual struct Test::MyStruct GetMyStruct() override { return Test::MyStruct{}; }
+public:
+    int m_Width;
+    int m_Height;
+
+	double area() const noexcept override 
+    { 
+        return m_Width * m_Height; 
+    }
+
+	void scale_by(double factor) noexcept override
+    {
+        m_Width *= factor;
+        m_Height *= factor;
+    }
+
+	Test::MyStruct GetMyStruct() override { return Test::MyStruct{}; }
 };
 
-int main()
-{
-	auto e = MyEnum::a();
-	auto b = MyFunc(MyArg{ 42 });
-	C c;
-	c.Foo();
-	D d;
+#endif
 
-	std::cout << "hi!";
-	return 0;
+
+int main(int argc, char** argv)
+{
+
+#ifndef __clang__
+
+    Rect rect;
+
+    auto enum_value = MyEnum::a();
+
+    Material mat;
+    mat.ForEach([](auto& member, const char* name)
+    {
+       std::cout << name << std::endl; 
+    });
+
+    auto obj = MyFunc(MyArg{});
+
+#else
+    Gen::System<"calc.exe">();
+#endif
+    return 0;
 }
+
+
+
+
+
+

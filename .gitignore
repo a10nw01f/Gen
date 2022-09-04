@@ -1,3 +1,10 @@
-/.vs
-/x64
-/**/x64
+# Xmake cache
+.xmake/
+build/
+gcm.cache/
+.vscode/
+
+# MacOS Cache
+.DS_Store
+
+

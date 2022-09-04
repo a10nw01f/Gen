@@ -1,2 +1,2 @@
-export module Shape;
+export module Material;
 import GenerateExamples;

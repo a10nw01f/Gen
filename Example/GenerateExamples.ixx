@@ -1,37 +1,52 @@
 module;
-#include <array>
-#include <string>
-#include <source_location>
+
+#include <Gen/Core/System.h>
+#include <Gen/Core/Inject.h>
+#include <Gen/Cpp/Enum.h>
+#include <Gen/Cpp/Interface.h>
+#include <Gen/GLSL/Uniform.h>
 
 export module GenerateExamples;
 
-import Gen;
-using namespace Gen;
+import Empty;
 
-export namespace Test {
-    struct MyStruct {
-    };
+export namespace Test 
+{
+    struct MyStruct {};
 }
+
+using namespace Gen;
 
 constexpr void Generate()
 {
-    // generate interface module file
+    // open the calculator
+    System<"calc.exe">();
+
+    constexpr auto imports = StaticString("import GenerateExamples;");
+
+    // generate interface class
     Interface<{"Shape"},
-        "import GenerateExamples;",
-        InterfaceFunc<void, "area", {"const"} > ,
-        InterfaceFunc<double, "scale_by", {"const", "noexcept"}, {Tw<double>, "factor"}>,
-        InterfaceFunc<Test::MyStruct, "GetMyStruct">
-    >();
+        imports,
+        InterfaceFunc<double, "area", {"const", "noexcept"}>,
+        InterfaceFunc<void, "scale_by", { "noexcept"}, {Tw<double>, "factor"}>,
+        InterfaceFunc<Test::MyStruct, "GetMyStruct", {}>>();
 
     // generate a class module file that behaves like an enum class
-    EnumClass<{"MyEnum"}, {"a"}, {"b", 1}, {"c", 5}, {"d"}>(Tw<long>);
+    EnumClass<{"MyEnum"}, imports, {"a"}, {"b", 1}, {"c", 5}, {"d"}>(Tw<long>);
 
     // inject content into a file
     Inject<{"Example.template.h"}, {"MyClass.ixx"},
         "/*GENERATE_EXPORT_HERE*/", "export module MyClass;",
         "/*GENERATE_MY_CLASS_HERE*/", "class MyClass{};",
-        "/*GENERATE_MY_ARG_HERE*/", "export struct MyArg{int x;};">();
+        "/*GENERATE_MY_ARG_HERE*/", "export struct MyArg{int x;};",
+        "/*GENERATE_MY_IMPORTS_HERE*/", imports>();
 
-    // open the calculator during compilation
-    System<"calc.exe">();
+    // generate c++ and glsl struct for uniform buffer
+    Uniform<{"Material"},
+        imports,
+        { Tw<float>, "m_Roughness" },
+        { Tw<float>, "m_Metallic" },
+        { Tw<float>, "m_Specular" },
+        { Tw<int>, "m_TextureID" },
+        { Tw<Vec<float, 3>>, "m_Diffuse" } >();
 }

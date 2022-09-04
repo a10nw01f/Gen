@@ -1,1 +1,0 @@
-"%cd%\x64\Debug\DllInjector.exe" "devenv.exe" "%cd%\x64\Debug\Hook.dll"
