@@ -28,6 +28,7 @@ mkdir C:\priority_path
 setx path "C:\priority_path;%path%"
 ```
 You can change it from `C:\priority_path` to any path you want.
+
 5. Copy CompilerProxy.exe to the folder you created and rename it after the name of your compiler (for example cl.exe/gcc.exe/clang.exe): `copy ".\build\windows\x64\release\CompilerProxy.exe" c:\priority_path\cl.exe`
 6. Create a config.txt in the folder that you created which maps to actual compiler executable.
 Example of a config.txt file content:
