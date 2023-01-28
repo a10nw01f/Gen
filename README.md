@@ -29,12 +29,14 @@ You can change it from `C:\priority_path` to any path you want.
 5. Copy CompilerProxy.exe to the folder you created and rename it after the name of your compiler (for example cl.exe/gcc.exe/clang.exe): `copy ".\build\windows\x64\release\CompilerProxy.exe" c:\priority_path\cl.exe`
 6. Create a config.txt in the folder that you created which maps to actual compiler executable.
 Example of a config.txt file content:
-`gcc.exe`
-`C:\msys64\mingw64\bin\gcc.exe` 
-`clang.exe`
-`C:\msys64\mingw64\bin\clang.exe` 
-`cl.exe`
-`C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.34.31933\bin\Hostx64\x64\cl.exe`
+```
+gcc.exe
+C:\msys64\mingw64\bin\gcc.exe
+clang.exe
+C:\msys64\mingw64\bin\clang.exe
+cl.exe
+C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.34.31933\bin\Hostx64\x64\cl.exe
+```
 
 7. Compile the example: `xmake -r Example`
 
