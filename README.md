@@ -23,8 +23,10 @@ In order to run the HelloCpp2 example it needs the "cpp2util.h" file from the cp
 2. Install xmake if you don't have it installed already: https://xmake.io/#/
 3. Compile the compiler proxy: `xmake -r CompilerProxy`
 4. Create a folder and add it to the beginning of your path environment variable for example:
-`mkdir C:\priority_path`
-`setx path "C:\priority_path;%path%"`
+```
+mkdir C:\priority_path
+setx path "C:\priority_path;%path%"
+```
 You can change it from `C:\priority_path` to any path you want.
 5. Copy CompilerProxy.exe to the folder you created and rename it after the name of your compiler (for example cl.exe/gcc.exe/clang.exe): `copy ".\build\windows\x64\release\CompilerProxy.exe" c:\priority_path\cl.exe`
 6. Create a config.txt in the folder that you created which maps to actual compiler executable.
