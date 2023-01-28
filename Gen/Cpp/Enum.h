@@ -48,7 +48,8 @@ namespace Gen
     constexpr auto EnumClass(TypeWrapper<Type> = TypeWrapper<int>{})
     {
         constexpr auto module_content = StringToArray_v<[]{
-            std::string content = Format(R"(module;
+            auto content = Gen::ReserveString();
+            Gen::Format(content, R"(module;
 #include <compare>
 
 export module ${{0}};
@@ -65,19 +66,20 @@ auto operator<=>(const ${{0}}&) const = default;
 constexpr explicit ${{0}}(U value) : m_Value(value) {}
 constexpr explicit operator U() const { return m_Value; }
 )", { file_info.m_Name.data(), GetTypeName<Type>(), import.String() });
+
             Type current = 0;
             ForEach([&content, &current](auto& value)
                 {
                     current = value.GetValue(current);
-                    content += Format(R"(	static constexpr ${{0}} ${{1}}() { return ${{0}} { (U) ${{2}} }; }
-)", { file_info.m_Name.data(), value.GetName(), ValueToString(current) });
+                    Format(content, " static constexpr ${{0}} ${{1}}() { return ${{0}} { (U) ${{2}} }; }\n", 
+                        { file_info.m_Name.data(), value.GetName(), ValueToString(current) });
 
                     current += (Type)1;
                 }, values...);
 
             content += "};";
             return content;
-        } > ;
+        }>;
 
         WriteFile<PathWithExt<file_info, ".ixx">(), module_content>();
     }

@@ -21,6 +21,7 @@ target("CompilerProxy")
     add_files("CompilerProxy/*.cpp")
 
 target("Example")
+    add_includedirs("./Example/dependencies/cppfront/include")
     if is_config("toolchain", "clang") then
         add_files("Example/main.cpp")
     else
@@ -28,6 +29,8 @@ target("Example")
         add_files("Example/*.cpp")
     end
     
+    --add_defines("CPP2EXAMPLE")
+
     before_build_files(function(target)
         tmp = target._MEMCACHE._DATA.toolchains[1]._CACHE._DATA
         for k,v in pairs(tmp) do
@@ -38,5 +41,6 @@ target("Example")
     end)
 
     set_kind("binary")
+
 
     

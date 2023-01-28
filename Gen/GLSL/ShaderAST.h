@@ -3,6 +3,7 @@
 #include <variant>
 #include "../Core/std.h"
 #include "../Core/Identifier.h"
+#include "../Core/Format.h"
 
 namespace Gen
 {
@@ -40,15 +41,15 @@ namespace Gen
                 return Gen::Var{exp.m_Type, name };
             }
 
-            constexpr std::string ToString() const
+            constexpr void ToString(std::string& str) const
             {
-                std::string str = "{\n";
+                str += "{\n";
                 for(auto& exp : m_Statements)
                 {
-                    str += exp.ToString() + ";\n";
+                    exp.ToString(str);
+                    str += ";\n";
                 }
                 str += "}";
-                return str;
             }
 
             constexpr void operator+=(Exp&& exp)
@@ -86,57 +87,61 @@ namespace Gen
             this->m_Variant = Exp::Ref(var.m_Identifier);
         }
 
-        constexpr std::string ToString() const
+        constexpr void ToString(std::string& str) const
         {
-            return std::visit([this](auto& val){
+            std::visit([this, &str](auto& val){
                 using T = std::decay_t<decltype(val)>;
                 if constexpr(std::is_same_v<T, Ref>)
                 {
-                    return val.m_Identifier;
+                    str += val.m_Identifier;
                 }
                 else if constexpr(std::is_same_v<T, Literal>)
                 {
-                    return val.m_Value;
+                    str += val.m_Value;
                 }
                 else if constexpr(std::is_same_v<T, Var>)
                 {
-                    return val.m_Initialize[0].m_Type + " " + val.m_Identifier + " = " + val.m_Initialize[0].ToString();
+                    str += val.m_Initialize[0].m_Type;
+                    str += " ";
+                    str += val.m_Identifier;
+                    str += " = ";
+                    val.m_Initialize[0].ToString(str);
                 }
                 else if constexpr(std::is_same_v<T, Op>)
                 {
                     const Op& op = val;
                     if(IsValidIndentifierChar(op.m_Op[0]))
                     {
-                        std::string str = op.m_Op + '(';
+                        str += op.m_Op + '(';
                         for(auto& opr : op.m_Operands)
                         {
-                            str += opr.ToString() + ',';
+                            opr.ToString(str);
+                            str += ',';
                         }
                         str.back() = ')';
-                        return str;
                     }
                     else
                     {
-                        std::string str;
                         bool appendOp = true;
                         for(auto& opr : op.m_Operands)
                         {
-                            str += opr.ToString();
+                            opr.ToString(str);
                             if(appendOp)
                             {
                                 str += op.m_Op;
                                 appendOp = false;
                             }
                         }
-                        return str;
                     }
                 }
                 else if constexpr(std::is_same_v<T, If>)
                 {
                     const If& iff = val;
-                    return "if(" + iff.m_Condition[0].ToString() + ")\n" + iff.m_Scope.ToString();
+                    str += "if(";
+                    iff.m_Condition[0].ToString(str);
+                    str += ")\n";
+                    iff.m_Scope.ToString(str);
                 }
-                return std::string("exp");
             }, m_Variant);
         }
 
@@ -164,17 +169,16 @@ namespace Gen
         std::vector<Arg> m_Args;
         Exp::Scope m_Scope;
 
-        constexpr auto ToString() const
+        constexpr void ToString(std::string& str) const
         {
-            std::string str = m_RetType + ' ' + m_Identifier + '(';
+            str += m_RetType + ' ' + m_Identifier + '(';
             for(auto& arg : m_Args)
             {
                 str += arg.m_Modifier + ' ' + arg.m_Type + ' ' + arg.m_Identifier + ',';
             }
             str.back() = ')';
             str += '\n';
-            str += m_Scope.ToString();
-            return str;
+            m_Scope.ToString(str);
         }
     };
 
@@ -202,10 +206,11 @@ namespace Gen
 
         constexpr auto ToString()
         {
-            std::string str;
+            auto str = Gen::ReserveString();
             for(auto& func : m_Functions)
             {
-                str += func.ToString() + "\n\n";
+                func.ToString(str);
+                str += "\n\n";
             }
 
             return str;

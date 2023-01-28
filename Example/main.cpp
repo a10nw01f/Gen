@@ -1,3 +1,5 @@
+
+
 #include <Gen/Core/System.h>
 
 #ifndef __clang__
@@ -30,14 +32,21 @@ public:
 	Test::MyStruct GetMyStruct() override { return Test::MyStruct{}; }
 };
 
+#ifdef CPP2EXAMPLE
+#include "HelloCpp2.h"
+#endif
+
 #endif
 
 
 int main(int argc, char** argv)
 {
-
+    
 #ifndef __clang__
 
+#ifdef CPP2EXAMPLE
+    auto ret = HelloCpp2();
+#endif
     Rect rect;
 
     auto enum_value = MyEnum::a();
@@ -49,7 +58,6 @@ int main(int argc, char** argv)
     });
 
     auto obj = MyFunc(MyArg{});
-
 #else
     Gen::System<"calc.exe">();
 #endif

@@ -1,23 +1,25 @@
-#define _CRT_SECURE_NO_WARNINGS
+#include <windows.h>
 #include <iostream>
 #include <string_view>
 #include <string.h>
-#include <windows.h>
-#include <thread>
+
 #include <fstream>
-#include <string>
-#include <memory.h>
 #include <filesystem>
 #include <stdio.h>
-#include <tchar.h>
+#include "RunProcess.h"
+#include "ProcessContent.h"
+
+#ifdef _WIN32
+#include <windows.h>
 #include <psapi.h>
 #include <strsafe.h>
-#include "ProcessContent.h"
+#include <tchar.h>
 
 std::wstring GetFileNameFromHandle(HANDLE hFile)
 {
     BOOL bSuccess = FALSE;
     TCHAR pszFilename[MAX_PATH + 1];
+    pszFilename[0] = 0;
     HANDLE hFileMap;
 
     // Get the file size.
@@ -106,114 +108,78 @@ std::wstring GetFileNameFromHandle(HANDLE hFile)
 
     return std::wstring(pszFilename);
 }
+#endif
 
-DWORD __stdcall ReadDataFromExtProgram(HANDLE read_handle, const CompilerInfo& compiler_info)
+void RunCompilerProcess(const char* command[], const CompilerInfo& compiler_info)
 {
-    DWORD read;
-    constexpr int kBufferSize = 1024 * 1024;
-    static char buffer[kBufferSize];
+    int exit_status = 0;
 
-    while(true)
+    std::stringstream compiler_output;
+    auto result = RunProcess(command, [&](const char* str){
+        auto content = std::string_view(str);
+        std::cout << content;
+        compiler_output << content;
+    });
+
+    if(!result.has_value())
     {
-        auto success = ReadFile(read_handle, buffer, kBufferSize, &read, NULL);
-        if (!success || read == 0) continue;
-
-        auto content = std::string_view(buffer, buffer + read);
-
-        ProcessContent(content, compiler_info);
-
-        std::cerr << content << std::endl;
-        if (!success) break;
-    }
-    return 0;
-}
-
-HRESULT RunCompilerProcess(const std::string& commandLine, const CompilerInfo& compiler_info)
-{
-    STARTUPINFOA si;
-    PROCESS_INFORMATION pi;
-    SECURITY_ATTRIBUTES saAttr;
-
-    ZeroMemory(&saAttr, sizeof(saAttr));
-    saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
-    saAttr.bInheritHandle = TRUE;
-    saAttr.lpSecurityDescriptor = NULL;
-
-    HANDLE read_handle = NULL;
-    HANDLE write_handle = NULL;
-
-    if (!CreatePipe(&read_handle, &write_handle, &saAttr, 0))
-    {
-        return HRESULT_FROM_WIN32(GetLastError());
+        exit(-1);
     }
 
-    if (!SetHandleInformation(read_handle, HANDLE_FLAG_INHERIT, 0))
+    exit_status |= ProcessContent(compiler_output.str(), compiler_info, [](const char* str) {
+        std::cout << str;
+    });
+    
+    exit_status |= *result;
+
+#ifdef _WIN32
+    char buffer[MAX_PATH];
+    if (GetEnvironmentVariableA("VS_UNICODE_OUTPUT", buffer, MAX_PATH) != 0)
     {
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
-
-    ZeroMemory(&si, sizeof(si));
-    si.cb = sizeof(si);
-    si.hStdError = write_handle;
-    si.hStdOutput = write_handle;
-    si.dwFlags |= STARTF_USESTDHANDLES;
-
-    ZeroMemory(&pi, sizeof(pi));
-
-    if (!CreateProcessA(NULL,
-        (LPSTR)commandLine.c_str(),
-        NULL,
-        NULL,
-        TRUE,
-        0,
-        NULL,
-        NULL,
-        &si,
-        &pi))
-    {
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
-    else
-    {
-        std::thread([read_handle, &compiler_info]{
-            ReadDataFromExtProgram(read_handle, compiler_info);
-        }).detach();
-        WaitForSingleObject(pi.hProcess, INFINITE);
-
-        Sleep(100);
-        DWORD exitCode;
-        GetExitCodeProcess(pi.hProcess, &exitCode);
-
-        constexpr int kBufferSize = 512;
-        char buffer[kBufferSize];
-        if (GetEnvironmentVariableA("VS_UNICODE_OUTPUT", buffer, kBufferSize) != 0)
-        {
-            auto handle = strtol(buffer, nullptr, 10);
-            DWORD bytes_read = 0;
-            auto success = ReadFile((HANDLE)handle, buffer, kBufferSize, &bytes_read, nullptr);
-                
-            auto filepath = GetFileNameFromHandle((HANDLE)handle);
-            auto length = std::wcstombs(buffer, filepath.c_str(), kBufferSize);
-            auto content = ReadFileToStringW(buffer);
-            ProcessContent(content, compiler_info);
+        auto handle = strtoll(buffer, nullptr, 10);
+        DWORD bytes_read = 0;
+        auto success = ReadFile((HANDLE)handle, buffer, MAX_PATH, &bytes_read, nullptr);
+            
+        auto filepath = GetFileNameFromHandle((HANDLE)handle);
+        size_t length;
+        auto err = wcstombs_s(&length, buffer, filepath.c_str(), sizeof(buffer));
+        if (err) {
+            std::cout << "wcstombs_s failed";
+            exit(-1);
         }
-
-        exit(exitCode);
+        auto content = ReadFileToStringW(buffer);
+        
+        std::ofstream output(buffer, std::ios_base::app | std::ios::binary);
+        
+        exit_status |= ProcessContent(content, compiler_info, [&output](const char* str){
+            for(; *str; str++){
+                output.put(*str);
+                output.put(0);
+            }
+        });
     }
-    return S_OK;
+#endif
+
+    exit(exit_status);
+    return;
 }
 
-auto GetExePath()
+std::filesystem::path GetExePath()
 {
-    char buffer[1024];
-    GetModuleFileNameA(GetModuleHandleA(NULL), buffer, sizeof(buffer));
-
-    return std::filesystem::path(buffer);
+#ifdef _WIN32
+    wchar_t path[MAX_PATH] = { 0 };
+    GetModuleFileNameW(NULL, path, MAX_PATH);
+    return path;
+#else
+    char result[PATH_MAX];
+    ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+    return std::string(result, (count > 0) ? count : 0);
+#endif
 }
 
 auto FindOriginalPath(std::filesystem::path path)
 {
-    std::ifstream config(path.parent_path().string() + "\\config.txt");
+    std::ifstream config(path.parent_path().append("config.txt").string());
     std::string line;
     while (std::getline(config, line))
     {
@@ -236,8 +202,8 @@ auto FindOriginalPath(std::filesystem::path path)
 int main(int argc, char** argv)
 {
     auto exe_path = GetExePath();
-    auto cmd = FindOriginalPath(exe_path);
-    if (cmd.empty())
+    auto compiler_path = FindOriginalPath(exe_path);
+    if (compiler_path.empty())
     {
         return 0;
     }
@@ -248,15 +214,13 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    if (!cmd.empty())
+    std::vector<const char*> command = {compiler_path.c_str()};
+    for (int i = 1; i < argc; ++i)
     {
-        
-        for (int i = 1; i < argc; ++i)
-        {
-            cmd += std::string(" \"") + argv[i] + '"';
-        }
-        RunCompilerProcess(cmd, *compiler_info);
+        command.emplace_back(argv[i]);
     }
+    command.emplace_back(nullptr);
+    RunCompilerProcess(command.data(), *compiler_info);
 
     return 0;
 }

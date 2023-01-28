@@ -5,6 +5,7 @@ module;
 #include <Gen/Cpp/Enum.h>
 #include <Gen/Cpp/Interface.h>
 #include <Gen/GLSL/Uniform.h>
+#include <Gen/Cpp/Cpp2.h>
 
 export module GenerateExamples;
 
@@ -49,4 +50,14 @@ constexpr void Generate()
         { Tw<float>, "m_Specular" },
         { Tw<int>, "m_TextureID" },
         { Tw<Vec<float, 3>>, "m_Diffuse" } >();
+#ifdef CPP2EXAMPLE
+    Cpp2<{"HelloCpp2.h"}, R"(
+HelloCpp2: () -> int = {
+    s: std::string = "Gen";
+    myfile := fopen("xyzzy", "w");
+    myfile.fprintf("Hello with UFCS from Cpp2 and %s!", s.c_str() );
+    myfile.fclose();
+    return 0;
+})", "-cl">();
+#endif
 }

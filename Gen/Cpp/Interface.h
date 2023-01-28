@@ -91,14 +91,21 @@ namespace Gen
         static_assert(Idetifier<name>, "name must be a valid identifier");
 
         constexpr auto module_content = StringToArray_v<[]{
-            auto content = std::string("export module ") + file_info.m_Name.data() + ";\n" + imports.m_Array + "\nexport class " + file_info.m_Name.data() + "\n{\npublic:\n";
+            std::string content;
+            content.reserve(Gen::kStringReserveSize);
+            Gen::Format(content, R"(export module ${{0}};
+${{1}}
+
+export class ${{0}}
+{
+    public:
+)", {file_info.m_Name.data(), imports.m_Array});
 
             ForEach([&content](auto& func) {
-                content += std::string("\tvirtual ") + func.m_Array + " = 0;\n";
+                Gen::Format(content, "    virtual ${{0}} = 0;\n", {func.m_Array});
             }, functions{}.Stringiy()...);
 
-            content += std::string("\tvirtual ~") + file_info.m_Name.data() + "() noexcept{}\n};";
-
+            Gen::Format(content, "  virtual ~${{0}}() noexcept{}\n};", {file_info.m_Name.data()});
             return content;
         }>;
 

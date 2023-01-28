@@ -18,21 +18,39 @@ namespace Gen
         }
     }
 
-    inline constexpr std::string Format(std::string formatArg, std::vector<std::string> args)
+    constexpr void Format(std::string& output, const std::string_view& format, std::initializer_list<std::string_view> args)
     {
-        auto format = formatArg;
         std::size_t offset = 0;
         while (true)
         {
             auto start = format.find("${{", offset);
             if (start == std::string::npos)
             {
-                return format;
+                break;
             }
             auto num = PraseInt(format.data() + start + 3);
             auto end = format.find("}}", start);
-            format = format.substr(0, start) + args[num] + format.substr(end + 2);
-            offset = start + args[num].length();
+            output.append(format.substr(offset, start - offset));
+            output.append(std::data(args)[num]);
+            offset = end + 2;
         }
+
+        output.append(format.substr(offset));
+    }
+
+    constexpr int kStringReserveSize = 4096;
+
+    inline constexpr std::string ReserveString(int reserve_size = kStringReserveSize)
+    {
+        std::string str;
+        str.reserve(reserve_size);
+        return str;
+    }
+    
+    inline constexpr std::string Format(const std::string_view& format, std::initializer_list<std::string_view> args)
+    {
+        std::string output;
+        Format(output, format, args);
+        return output;
     }
 }

@@ -1,10 +1,14 @@
 #pragma once
+#include <windows.h>
 
 #include <string>
 #include <string_view>
 #include <vector>
 #include <fstream>
-
+#include <sstream>
+#include <chrono>
+#include <stdio.h>
+#include "RunProcess.h"
 
 std::vector<std::string> ExtractStrings(std::string_view str, std::string_view delimiter, int advance)
 {
@@ -135,9 +139,59 @@ void SplitStr(std::string_view str, const char* startPosStr, const char* endPosS
     }
 }
 
-void ProcessContent(const std::string_view& content, const CompilerInfo& compiler_info)
+template<class T>
+class ItrPair {
+    T m_Begin, m_End;
+public:
+    ItrPair(T begin, T end) : m_Begin(begin), m_End(end) {}
+    auto begin() { return m_Begin; }
+    auto end() { return m_End; }
+};
+
+int OutputCppFromCpp2(const std::string& output_file_path, const std::string& cpp2src, ItrPair<std::string*> flags, const std::function<void(const char*)>& output)
 {
-    SplitStr(content, compiler_info.m_StartPos, compiler_info.m_EndPos, [&compiler_info](auto section)
+    auto output_error = [&](const char* err) {
+        output(err);
+        return -1;
+    };
+
+    char buffer[L_tmpnam_s];
+    if (auto err = tmpnam_s(buffer, sizeof(buffer)); err) 
+    {
+        return output_error("tmpnam_s failed");
+    }
+
+    auto input_file_path = buffer + std::string(".cpp2");
+    {
+        std::ofstream file(input_file_path);
+        if(!file.is_open())
+        {
+            return output_error("failed to open temporary file");
+        }
+        file << cpp2src;
+    }
+
+    std::vector<const char*> command;
+    command.emplace_back("cppfront");
+    for(auto& flag : flags)
+    {
+        command.emplace_back(flag.c_str());
+    }
+    command.emplace_back("-o");
+    command.emplace_back(output_file_path.c_str());
+    command.emplace_back(input_file_path.c_str());
+    command.emplace_back(nullptr);
+
+    int exit_code = RunProcess(command.data(), output).value_or(-1);
+
+    std::filesystem::remove(input_file_path);
+    return exit_code;
+}
+
+int ProcessContent(const std::string_view& content, const CompilerInfo& compiler_info, const std::function<void(const char*)>& output)
+{
+    int status = 0;
+    SplitStr(content, compiler_info.m_StartPos, compiler_info.m_EndPos, [&compiler_info, &output, &status](auto section)
     {
         auto strs = ExtractStrings(section, compiler_info.m_Delimiter, compiler_info.m_Advance);
         if (!strs.empty())
@@ -155,6 +209,12 @@ void ProcessContent(const std::string_view& content, const CompilerInfo& compile
             {
                 Inject(strs);
             }
+            else if(strs[0] == "Cpp2")
+            {
+                status |= OutputCppFromCpp2(strs[1], strs[2], ItrPair(&strs[3], strs.data() + strs.size()), output);
+            }
         }
     });
+
+    return status;
 }

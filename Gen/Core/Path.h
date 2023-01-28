@@ -5,10 +5,12 @@
 
 namespace Gen
 {
+    constexpr inline char kPathSeparator = static_cast<char>(std::filesystem::path::preferred_separator);
+
     constexpr FixedString GetCurrentDir(const char* path)
     {
         std::string str(path);
-        return StringToFixedStr(str.substr(0, str.find_last_of('\\')).c_str());
+        return StringToFixedStr(str.substr(0, str.find_last_of("/\\")).c_str());
     }
 
     struct NameAndFolder
@@ -23,7 +25,7 @@ namespace Gen
 
         constexpr auto PathWithExt(const char* ext) const
         {
-            return m_FolderPath.String() + std::string("\\") + m_Name.data() + ext;
+            return m_FolderPath.String() + kPathSeparator + m_Name.data() + ext;
         }
     };
 
@@ -47,7 +49,7 @@ namespace Gen
     template<Path path>
     constexpr auto FullPath() {
         return StringToArray_v<[]{
-            return path.m_Dir.String() + std::string("\\") + path.m_RelativePath.data();
+            return path.m_Dir.String() + kPathSeparator + path.m_RelativePath.data();
         }>;
     }
 }
