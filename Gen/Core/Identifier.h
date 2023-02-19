@@ -6,7 +6,7 @@
 
 namespace Gen
 {
-        inline constexpr bool IsDigit(const char c)
+    inline constexpr bool IsDigit(const char c)
     {
         return (c >= '0' && c <= '9');
     }
@@ -39,5 +39,5 @@ namespace Gen
     }
 
     template<StaticString str>
-    concept Idetifier = IsIdentifier<str>();
+    concept Identifier = IsIdentifier<str>();
 }

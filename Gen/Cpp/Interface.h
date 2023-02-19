@@ -44,10 +44,9 @@ namespace Gen
     template<class Ret, StaticString name, VirtualFuncKeywards keywardlist, FuncArg... Args>
     struct InterfaceFunc
     {
-        constexpr static bool IsInterfaceFunction = true;
         constexpr auto Stringiy() const
         {
-            static_assert(Idetifier<name>, "name must be a valid identifier");
+            static_assert(Identifier<name>, "name must be a valid identifier");
 
             return StringToArray_v<[]{
                 std::string str = std::string(GetTypeName<Ret>()) + ' ' + name.m_Array + "(";
@@ -88,7 +87,7 @@ namespace Gen
             return file_info.m_Name.String();
         }>;
 
-        static_assert(Idetifier<name>, "name must be a valid identifier");
+        static_assert(Identifier<name>, "name must be a valid identifier");
 
         constexpr auto module_content = StringToArray_v<[]{
             std::string content;
@@ -99,13 +98,13 @@ ${{1}}
 export class ${{0}}
 {
     public:
-)", {file_info.m_Name.data(), imports.m_Array});
+)", {file_info.m_Name.Data(), imports.m_Array});
 
             ForEach([&content](auto& func) {
                 Gen::Format(content, "    virtual ${{0}} = 0;\n", {func.m_Array});
             }, functions{}.Stringiy()...);
 
-            Gen::Format(content, "  virtual ~${{0}}() noexcept{}\n};", {file_info.m_Name.data()});
+            Gen::Format(content, "  virtual ~${{0}}() noexcept{}\n};", {file_info.m_Name.Data()});
             return content;
         }>;
 

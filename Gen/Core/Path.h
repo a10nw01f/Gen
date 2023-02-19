@@ -5,7 +5,7 @@
 
 namespace Gen
 {
-    constexpr inline char kPathSeparator = static_cast<char>(std::filesystem::path::preferred_separator);
+    constexpr inline char kPathSeparator = '/';
 
     constexpr FixedString GetCurrentDir(const char* path)
     {
@@ -19,13 +19,13 @@ namespace Gen
         FixedString m_FolderPath;
         constexpr NameAndFolder(const char* name, std::source_location source_location = std::source_location::current()) :
             m_Name(StringToFixedStr(name)),
-            m_FolderPath(StringToFixedStr(GetCurrentDir(source_location.file_name()).data()))
+            m_FolderPath(StringToFixedStr(GetCurrentDir(source_location.file_name()).Data()))
         {
         }
 
         constexpr auto PathWithExt(const char* ext) const
         {
-            return m_FolderPath.String() + kPathSeparator + m_Name.data() + ext;
+            return m_FolderPath.String() + kPathSeparator + m_Name.Data() + ext;
         }
     };
 
@@ -42,14 +42,14 @@ namespace Gen
 
         constexpr Path(const char* relative_path, std::source_location source_location = std::source_location::current()) :
             m_RelativePath(StringToFixedStr(relative_path)), 
-            m_Dir(StringToFixedStr(GetCurrentDir(source_location.file_name()).data()))
+            m_Dir(StringToFixedStr(GetCurrentDir(source_location.file_name()).Data()))
         {}
     };
 
     template<Path path>
     constexpr auto FullPath() {
         return StringToArray_v<[]{
-            return path.m_Dir.String() + kPathSeparator + path.m_RelativePath.data();
+            return path.m_Dir.String() + kPathSeparator + path.m_RelativePath.Data();
         }>;
     }
 }

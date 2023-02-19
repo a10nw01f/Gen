@@ -75,6 +75,7 @@ namespace Gen
     {
         using Type = T;
         constexpr auto GetName() const { return GetTypeName<T>(); }
+        T GetType() const;
     };
 
     template<class T>
@@ -105,4 +106,57 @@ namespace Gen
 
         return result;
     }
+
+    template<class... Ts>
+    struct TypeList{};
+
+    template<class T, class S>
+    constexpr auto GetDataMemberType(T S::*)
+    {
+        return Tw<T>;
+    }
+
+    template<class T, class S>
+    constexpr auto GetStructType(T S::*)
+    {
+        return Tw<S>;
+    }
+
+    template<class F, class... Ts>
+    constexpr auto Expand(TypeList<Ts...>, F&& func)
+    {
+        return func(Ts{}...);
+    }
+
+    template<class... Ts, class... Us>
+    constexpr auto Concat(TypeList<Ts...>,TypeList<Us...>){return TypeList<Ts...,Us...>();}
+
+    template<class F>
+    constexpr auto Filter(TypeList<>, F&& func){return TypeList<>();}
+
+    template<class F, class T, class... Ts>
+    constexpr auto Filter(TypeList<T, Ts...>, F func)
+    {
+        std::integral_constant<bool, func(T())> passed;
+        if constexpr(passed)
+        {
+            return Concat(TypeList<T>(),Filter(TypeList<Ts...>(), func)); 
+        }
+        else
+        {
+            return Filter(TypeList<Ts...>(), func);
+        }
+    }
+
+    template<class F, class... Ts>
+    constexpr auto Transform(TypeList<Ts...>, F&& func)
+    {
+        return TypeList<decltype(func(Ts()))...>();
+    }
+
+    template<auto V>
+    struct ValueWrapper
+    {
+        constexpr auto Value() const { return V; }
+    };
 }

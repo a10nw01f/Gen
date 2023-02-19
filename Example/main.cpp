@@ -5,12 +5,14 @@
 #ifndef __clang__
 
 #include <iostream>
+#include <Gen/Cpp/Struct.h>
 
 import GenerateExamples;
 import MyEnum;
 import Shape;
 import MyClass;
 import Material;
+import MappedStructExample;
 
 class Rect : Shape
 {
@@ -58,6 +60,11 @@ int main(int argc, char** argv)
     });
 
     auto obj = MyFunc(MyArg{});
+
+#ifndef __GNUC__
+    MappedStructExample mapped{nullptr, nullptr};
+    auto tup = Gen::ToTuple(mapped);
+#endif
 #else
     Gen::System<"calc.exe">();
 #endif

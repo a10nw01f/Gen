@@ -4,6 +4,7 @@
 #include "../Core/Path.h"
 #include "../Core/Utils.h"
 #include "../Core/Format.h"
+#include "../Core/NameAndType.h"
 #include "Std140.h"
 
 namespace Gen
@@ -28,25 +29,10 @@ namespace Gen
         {
             return GetTypeName<T>();
         }
-
-        template<class T>
-        struct NameAndType
-        {
-            Gen::FixedString m_Name;
-
-            constexpr NameAndType(TypeWrapper<T>, const char* str) :
-                m_Name(Gen::StringToFixedStr(str))
-            {
-            }
-
-            constexpr auto GetName() const { return std::string(m_Name.data()); }
-            constexpr auto GetTypeName() const { return ::GetTypeName<T>(); }
-            constexpr auto GetType() const { return Gen::Tw<T>; }
-        };
     }
 
-    template<NameAndFolder file_info, StaticString imports, Impl::NameAndType... members>
-    constexpr void Uniform()
+    template<NameAndFolder file_info, StaticString imports, NameAndType... members>
+    constexpr void Uniform() requires (... && IsIdentifierAndType<members>)
     {    
         constexpr auto glsl_content = StringToArray_v<[]{
             std::string members_str;

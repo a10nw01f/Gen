@@ -4,12 +4,13 @@
 
 namespace Gen
 {
-    struct FixedString
+    template<int I = 128>
+    struct FixedStringImpl
     {
-        constexpr static int Size = 260;
+        constexpr static int Size = I;
         char m_Data[Size] = {};
-        constexpr FixedString() = default;
-        constexpr FixedString(const char* str)
+        constexpr FixedStringImpl() = default;
+        constexpr FixedStringImpl(const char* str)
         {
             for (int i = 0; i < Size; i++)
             {
@@ -20,11 +21,14 @@ namespace Gen
                 }
             }
         }
-        constexpr auto data() const { return m_Data; }
+
         constexpr auto& operator[](int i) const { return m_Data[i]; }
         constexpr auto& operator[](int i) { return m_Data[i]; }
         constexpr auto String() const { return std::string(m_Data); }
+        constexpr auto Data() const { return m_Data; }
     };
+
+    using FixedString = FixedStringImpl<>;
 
     constexpr FixedString StringToFixedStr(const char* str)
     {

@@ -6,6 +6,7 @@ module;
 #include <Gen/Cpp/Interface.h>
 #include <Gen/GLSL/Uniform.h>
 #include <Gen/Cpp/Cpp2.h>
+#include <Gen/Cpp/Struct.h>
 
 export module GenerateExamples;
 
@@ -50,6 +51,7 @@ constexpr void Generate()
         { Tw<float>, "m_Specular" },
         { Tw<int>, "m_TextureID" },
         { Tw<Vec<float, 3>>, "m_Diffuse" } >();
+
 #ifdef CPP2EXAMPLE
     Cpp2<{"HelloCpp2.h"}, R"(
 HelloCpp2: () -> int = {
@@ -60,4 +62,8 @@ HelloCpp2: () -> int = {
     return 0;
 })", "-cl">();
 #endif
+
+    Struct<{"TestStruct"}, imports, 
+        {Tw<int>,"foo123"},
+        {Tw<void*>, "bar"}>();
 }

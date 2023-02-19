@@ -30,6 +30,10 @@ namespace Gen
             return arr;
         }
 
+        constexpr auto Data() {
+            return m_Array;
+        }
+
         constexpr auto String() const {
             return std::string(m_Array);
         }

@@ -24,7 +24,7 @@ namespace Gen
             {
             }
 
-            constexpr auto GetName() const { return std::string(m_Name.data()); }
+            constexpr auto GetName() const { return std::string(m_Name.Data()); }
 
             template<class T>
             constexpr T GetValue(T current) const 
@@ -65,14 +65,14 @@ public:
 auto operator<=>(const ${{0}}&) const = default;
 constexpr explicit ${{0}}(U value) : m_Value(value) {}
 constexpr explicit operator U() const { return m_Value; }
-)", { file_info.m_Name.data(), GetTypeName<Type>(), import.String() });
+)", { file_info.m_Name.Data(), GetTypeName<Type>(), import.String() });
 
             Type current = 0;
             ForEach([&content, &current](auto& value)
                 {
                     current = value.GetValue(current);
                     Format(content, " static constexpr ${{0}} ${{1}}() { return ${{0}} { (U) ${{2}} }; }\n", 
-                        { file_info.m_Name.data(), value.GetName(), ValueToString(current) });
+                        { file_info.m_Name.Data(), value.GetName(), ValueToString(current) });
 
                     current += (Type)1;
                 }, values...);
