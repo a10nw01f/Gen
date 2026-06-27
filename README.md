@@ -1,6 +1,6 @@
 # Gen
 
-Gen is a C++23 compile-time code generation library. You describe the code you want in ordinary C++—using constexpr builders for C++ modules, structs, interfaces, and GLSL shaders—and Gen emits source files during compilation, before your program links and runs.
+Gen is a library for compile-time code generation and arbitrary execution. You describe the code you want in ordinary C++—using constexpr builders for C++ modules, structs, interfaces, and GLSL shaders—and Gen emits source files during compilation, before your program links and runs.
 
 The trick is a small **CompilerProxy** that sits in front of your real compiler, reads generation commands embedded in compiler diagnostics, and performs the side effects (writing files, running commands) as part of the build.
 
@@ -8,7 +8,7 @@ The trick is a small **CompilerProxy** that sits in front of your real compiler,
 
 ```
 ┌─────────────┐     ┌────────────────┐     ┌──────────────────┐
-│ Your C++    │───▶│ CompilerProxy  │────▶│ Real compiler    │
+│ Your C++    │───▶ │ CompilerProxy  │────▶│ Real compiler    │
 │ + Gen API   │     │ (intercepts    │     │ (MSVC, Clang, …) │
 └─────────────┘     │  diagnostics)  │     └──────────────────┘
                     └───────┬────────┘

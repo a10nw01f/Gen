@@ -3,7 +3,7 @@
 #include <string>
 #include "identifier.h"
 #include <vector>
-#include "../core/static_print.h"
+#include "../Core/static_print.h"
 
 namespace gen {
     enum class Keywords {

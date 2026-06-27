@@ -1,6 +1,7 @@
-message(CMAKE_CXX_COMPILER="${CMAKE_CXX_COMPILER}")
+# pass the original compiler path to CompilerProxy
 add_definitions(-DGEN_COMPILER_PATH=${CMAKE_CXX_COMPILER})
 
+# use CompilerProxy instead of the original compiler
 if(MSVC)
     set(CMAKE_CXX_COMPILER "${CMAKE_BINARY_DIR}/CompilerProxy/CompilerProxy${CMAKE_EXECUTABLE_SUFFIX}")
 else()

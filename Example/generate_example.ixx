@@ -1,9 +1,9 @@
 module;
 
-#include <Gen/core/static_print.h>
-#include <Gen/cpp/interface.h>
-#include <Gen/cpp/module.h>
-#include <Gen/cpp/struct.h>
+#include <Gen/Core/static_print.h>
+#include <Gen/Cpp/interface.h>
+#include <Gen/Cpp/module.h>
+#include <Gen/Cpp/struct.h>
 
 export module generate_example;
 

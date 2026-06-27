@@ -3,7 +3,7 @@
 #include <complex>
 
 #include "interface.h"
-#include "../core/commands.h"
+#include "../Core/commands.h"
 
 namespace gen {
     template<Directory dir, auto I>

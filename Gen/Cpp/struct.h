@@ -1,7 +1,7 @@
 #pragma once
 
 #include "identifier.h"
-#include "../core/static_print.h"
+#include "../Core/static_print.h"
 #include <vector>
 
 namespace gen {

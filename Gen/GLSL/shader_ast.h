@@ -5,8 +5,8 @@
 #include <optional>
 #include <variant>
 
-#include "../core/utils.h"
-#include "../core/static_print.h"
+#include "../Core/utils.h"
+#include "../Core/static_print.h"
 
 namespace gen::glsl {
     struct Exp;
