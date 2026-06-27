@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <string_view>
 #include <string>
+#include "../Core/utils.h"
 
 namespace gen {
     class Identifier{

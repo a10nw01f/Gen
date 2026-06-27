@@ -1,6 +1,5 @@
 #include "Gen/glsl/shader_ast.h"
 #include "Gen/core/commands.h"
-#include <iostream>
 
 static void consteval generate_shader() {
     constexpr auto writer = [] {

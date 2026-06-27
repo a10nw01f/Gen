@@ -21,3 +21,5 @@ target_sources(Example
         shape.ixx)
 
 target_include_directories(Example PRIVATE ../)
+
+add_dependencies (Example CompilerProxy)
