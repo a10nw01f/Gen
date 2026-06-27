@@ -1,78 +1,24 @@
-
-
-#include <Gen/Core/System.h>
-
-#ifndef __clang__
-
 #include <iostream>
-#include <Gen/Cpp/Struct.h>
 
-import GenerateExamples;
-import MyEnum;
-import Shape;
-import MyClass;
-import Material;
-import MappedStructExample;
+import shape;
 
-class Rect : Shape
-{
+class Rectangle : Shape {
 public:
-    int m_Width;
-    int m_Height;
+    int width = 0;
+    int height = 0;
 
-	double area() const noexcept override 
-    { 
-        return m_Width * m_Height; 
+    int area() const noexcept override {
+        return width * height;
     }
 
-	void scale_by(double factor) noexcept override
-    {
-        m_Width *= factor;
-        m_Height *= factor;
-    }
+    void foo(int arg1) noexcept override {
 
-	Test::MyStruct GetMyStruct() override { return Test::MyStruct{}; }
+    }
 };
 
-#ifdef CPP2EXAMPLE
-#include "HelloCpp2.h"
-#endif
-
-#endif
-
-
-int main(int argc, char** argv)
-{
-    
-#ifndef __clang__
-
-#ifdef CPP2EXAMPLE
-    auto ret = HelloCpp2();
-#endif
-    Rect rect;
-
-    auto enum_value = MyEnum::a();
-
-    Material mat;
-    mat.ForEach([](auto& member, const char* name)
-    {
-       std::cout << name << std::endl; 
+int main() {
+    Material{42, 0.6f}.for_each([](auto name, auto&& value) {
+        std::cout << name << ": " << value << '\n';
     });
-
-    auto obj = MyFunc(MyArg{});
-
-#ifndef __GNUC__
-    MappedStructExample mapped{nullptr, nullptr};
-    auto tup = Gen::ToTuple(mapped);
-#endif
-#else
-    Gen::System<"calc.exe">();
-#endif
     return 0;
 }
-
-
-
-
-
-

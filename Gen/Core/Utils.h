@@ -1,162 +1,71 @@
 #pragma once
-#include "std.h"
-#include "StaticPrint.h"
-#include "StaticString.h"
 
-template<class T>
-inline constexpr auto GetTypeName()
-{
-    #ifdef _MSC_VER
+#include <string_view>
+#include <source_location>
+#include <type_traits>
+#include <utility>
+#include <string>
 
-    constexpr auto start_sig_len = std::string_view("auto __cdecl GetTypeName<").length();
-    constexpr auto end_sig_len = std::string_view(">(void)").length();
-    constexpr auto sig_len = std::string_view(__FUNCSIG__).length();
+class REFLECT_STRUCT_HELPER {
+public:
+    enum class ENUM { };
+};
 
-    return std::string(__FUNCSIG__).substr(start_sig_len, sig_len - start_sig_len - end_sig_len);
-
-    #elif __clang__
-
-    constexpr auto start_sig_len = std::string_view("auto GetTypeName() [T = ").length();
-    constexpr auto end_sig_len = std::string_view("]").length();
-    constexpr auto sig_len = std::string_view(__PRETTY_FUNCTION__).length();
-
-    return std::string(__PRETTY_FUNCTION__).substr(start_sig_len, sig_len - start_sig_len - end_sig_len);
-
-    #elif __GNUC__
-
-    constexpr auto start_sig_len = std::string_view("constexpr auto GetTypeName() [with T = ").length();
-    constexpr auto end_sig_len = std::string_view("]").length();
-    constexpr auto sig_len = std::string_view(__PRETTY_FUNCTION__).length();
-
-    return std::string(__PRETTY_FUNCTION__).substr(start_sig_len, sig_len - start_sig_len - end_sig_len);
-
-    #endif
-}
-
-namespace Gen
-{
-    template<class F, auto... Is>
-    inline constexpr auto ForEachIndex(F&& func, std::index_sequence<Is...>)
-    {
-        return func(Is...);
+namespace gen {
+    template <class... Ts>
+    constexpr auto function_name() noexcept -> std::string_view {
+        return std::source_location::current().function_name();
     }
 
-    template<class F, class... Ts>
-    inline constexpr void ForEach(F&& func, Ts&&... args)
-    {
-        (func(args), ...);
-    }
-
-    template<StaticString file, StaticString content>
-    inline constexpr void WriteFile()
-    {
-        StaticPrint<StaticString("WriteFile").Array(), file.Array(), content.Array()>::Print();
-    }
-
-    template<auto func>
-    inline constexpr auto StringToArray()
-    {
-        constexpr auto size = func().length() + 1ul;
-        StaticString<size> arr{};
-        auto str = func();
-        for(auto i = 0ul; i < size; ++i)
-        {
-            arr.m_Array[i] = str[i];
-        }
-
-        return arr;
-    }
-
-    template<auto func>
-    constexpr auto StringToArray_v = StringToArray<func>();
-
-    template<class T>
-    struct TypeWrapper 
-    {
-        using Type = T;
-        constexpr auto GetName() const { return GetTypeName<T>(); }
-        T GetType() const;
+    template <class T>
+    struct TypeNameInfo {
+        static constexpr auto name = function_name<int>();
+        static constexpr auto begin = name.find("int");
+        static constexpr auto end =
+            name.substr(begin + std::size(std::string_view{"int"}));
     };
 
-    template<class T>
-    constexpr TypeWrapper<T> Tw = TypeWrapper<T>{};
+    template <class T>
+      requires std::is_class_v<T>
+    struct TypeNameInfo<T> {
+        static constexpr auto name = function_name<::REFLECT_STRUCT_HELPER>();
+        static constexpr auto begin = name.find("REFLECT_STRUCT_HELPER");
+        static constexpr auto end =
+            name.substr(begin + std::size(std::string_view{"REFLECT_STRUCT_HELPER"}));
+    };
 
-    template<class T>
-    inline constexpr std::string ValueToString(T value)
-    {
-        if (value == 0)
-            return std::string("0");
-        std::string result;
-        bool negative = value < 0;
-        if (negative)
-        {
-            value = -value;
-        }
+    template <class T>
+      requires std::is_enum_v<T>
+    struct TypeNameInfo<T> {
+        static constexpr auto name = function_name<::REFLECT_STRUCT_HELPER::ENUM>();
+        static constexpr auto begin = name.find("REFLECT_STRUCT_HELPER::ENUM");
+        static constexpr auto end =
+            name.substr(begin + std::size(std::string_view{"REFLECT_STRUCT_HELPER::ENUM"}));
+    };
 
-        while (value != 0)
-        {
-            result = (char)((value % 10) + '0') + result;
-            value = value / 10;
-        }
+    inline constexpr const char* ws = " \t\n\r\f\v";
 
-        if (negative)
-        {
-            result = '-' + result;
-        }
+    inline constexpr void rtrim(std::string& s, const char* t = ws) {
+        s.erase(s.find_last_not_of(t) + 1);
+    }
 
+    inline constexpr void ltrim(std::string& s, const char* t = ws) {
+        s.erase(0, s.find_first_not_of(t));
+    }
+
+    inline constexpr void trim(std::string& s, const char* t = ws) {
+        rtrim(s, t);
+        ltrim(s, t);
+    }
+
+    template <class T>
+    constexpr auto get_type_name(std::type_identity<T>) {
+        using TT = TypeNameInfo<T>;
+        auto fn_name = function_name<T>();
+        auto name = fn_name.substr(TT::begin, fn_name.find(TT::end) - TT::begin);
+
+        auto result = std::string(name);
+        trim(result);
         return result;
     }
-
-    template<class... Ts>
-    struct TypeList{};
-
-    template<class T, class S>
-    constexpr auto GetDataMemberType(T S::*)
-    {
-        return Tw<T>;
-    }
-
-    template<class T, class S>
-    constexpr auto GetStructType(T S::*)
-    {
-        return Tw<S>;
-    }
-
-    template<class F, class... Ts>
-    constexpr auto Expand(TypeList<Ts...>, F&& func)
-    {
-        return func(Ts{}...);
-    }
-
-    template<class... Ts, class... Us>
-    constexpr auto Concat(TypeList<Ts...>,TypeList<Us...>){return TypeList<Ts...,Us...>();}
-
-    template<class F>
-    constexpr auto Filter(TypeList<>, F&& func){return TypeList<>();}
-
-    template<class F, class T, class... Ts>
-    constexpr auto Filter(TypeList<T, Ts...>, F func)
-    {
-        std::integral_constant<bool, func(T())> passed;
-        if constexpr(passed)
-        {
-            return Concat(TypeList<T>(),Filter(TypeList<Ts...>(), func)); 
-        }
-        else
-        {
-            return Filter(TypeList<Ts...>(), func);
-        }
-    }
-
-    template<class F, class... Ts>
-    constexpr auto Transform(TypeList<Ts...>, F&& func)
-    {
-        return TypeList<decltype(func(Ts()))...>();
-    }
-
-    template<auto V>
-    struct ValueWrapper
-    {
-        constexpr auto Value() const { return V; }
-    };
 }
