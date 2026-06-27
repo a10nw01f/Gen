@@ -6,8 +6,8 @@
 #include <fstream>
 #include <filesystem>
 #include <stdio.h>
-#include "RunProcess.h"
-#include "ProcessContent.h"
+#include "run_process.h"
+#include "process_content.h"
 
 void RunCompilerProcess(const char* command[])
 {
