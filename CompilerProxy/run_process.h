@@ -2,11 +2,9 @@
 
 #include <optional>
 #include <functional>
-#include <tchar.h>
-#include <strsafe.h>
 #include "dependencies/subprocess/subprocess.h"
 
-std::optional<int> RunProcess(const char* cmd[], const std::function<void(const char*)>& on_output)
+std::optional<int> RunProcess(const char* cmd[], const std::function<void(std::string_view)>& on_output)
 {
     auto process_error = [&](const char* str){
         on_output(str);
@@ -28,9 +26,10 @@ std::optional<int> RunProcess(const char* cmd[], const std::function<void(const 
         while (true)
         {
             buffer[0] = 0;
-            auto should_break = fgets(buffer, sizeof(buffer), p_stdout) == nullptr;
-            on_output(buffer);
-            if (should_break) {
+            const auto bytes_read =
+                fread(buffer, 1, sizeof(buffer) - 1, p_stdout);
+            on_output(std::string_view(buffer, bytes_read));
+            if (bytes_read == 0) {
                 break;
             }
         }

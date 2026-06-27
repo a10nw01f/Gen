@@ -1,46 +1,98 @@
-This repository contains three components - Gen, Compiler Proxy and Example.
-
 # Gen
-A C++20, header only library for arbitrary compile time execution and code generation.
 
-A detailed explanation of the library, its implementation and how to use it, is available at this Core C++ talk:
-https://www.youtube.com/watch?v=3aI3Mh2SE_Y
+Gen is a C++23 compile-time code generation library. You describe the code you want in ordinary C++—using constexpr builders for C++ modules, structs, interfaces, and GLSL shaders—and Gen emits source files during compilation, before your program links and runs.
 
-Old blog post about the previous implementation of the library (outdated):
-https://a10nw01f.github.io/generative_cpp/
+The trick is a small **CompilerProxy** that sits in front of your real compiler, reads generation commands embedded in compiler diagnostics, and performs the side effects (writing files, running commands) as part of the build.
 
-# Compiler Proxy Dependencies
-Subprocess - used for process creation: https://github.com/sheredom/subprocess.h
+## How it works
 
-Compiler proxy currently only supports windows as development platform. 
-Most of the transition to cross platform has already been completed. 
-
-# Example Dependencies
-In order to run the HelloCpp2 example it needs the "cpp2util.h" file from the cppfront repository: https://github.com/hsutter/cppfront
-
-# Compiling the Example
-1. Download or clone the github repository.
-2. Install xmake if you don't have it installed already: https://xmake.io/#/
-3. Compile the compiler proxy: `xmake -r CompilerProxy`
-4. Create a folder and add it to the beginning of your path environment variable for example:
 ```
-mkdir C:\priority_path
-setx path "C:\priority_path;%path%"
-```
-You can change it from `C:\priority_path` to any path you want.
-
-5. Copy CompilerProxy.exe to the folder you created and rename it after the name of your compiler (for example cl.exe/gcc.exe/clang.exe): `copy ".\build\windows\x64\release\CompilerProxy.exe" c:\priority_path\cl.exe`
-6. Create a config.txt in the folder that you created which maps to actual compiler executable.
-Example of a config.txt file content:
-```
-gcc.exe
-C:\msys64\mingw64\bin\gcc.exe
-clang.exe
-C:\msys64\mingw64\bin\clang.exe
-cl.exe
-C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.34.31933\bin\Hostx64\x64\cl.exe
+┌─────────────┐     ┌────────────────┐     ┌──────────────────┐
+│ Your C++    │───▶│ CompilerProxy  │────▶│ Real compiler    │
+│ + Gen API   │     │ (intercepts    │     │ (MSVC, Clang, …) │
+└─────────────┘     │  diagnostics)  │     └──────────────────┘
+                    └───────┬────────┘
+                            │
+                            ▼
+                    Write files, run commands
 ```
 
-7. Compile the example: `xmake -r Example`
+1. **Describe output at compile time** — Generation code runs inside `consteval` functions and writes to a fixed-size `StringWriter`.
+2. **Encode commands in diagnostics** — `static_print()` turns the writer buffer into compiler messages (`#pragma message` on MSVC, deprecated template instantiation on Clang/GCC).
+3. **CompilerProxy decodes and acts** — The proxy forwards invocations to the real compiler, parses the embedded data, and executes `WriteFile` and `System` commands (see `CompilerProxy/process_content.h`).
 
-You can uncomment the `add_defines("CPP2EXAMPLE")` inside xmake.lua to compile the cpp2 example but you need to have cppfront.exe since it will try to create a process with the following command: `cppfront <some args>`.
+CMake wires this up automatically: on MSVC, CompilerProxy replaces `CMAKE_CXX_COMPILER`; on other toolchains it is used as `CMAKE_CXX_COMPILER_LAUNCHER`.
+
+## Requirements
+
+- **CMake** 3.31 or later
+- A **C++23**-capable compiler
+
+The `Example` target demonstrates both C++ module generation and GLSL shader generation. After a successful build, generated artifacts appear next to the source files that triggered them (for example `Example/shape.ixx` and `Example/mainImage.glsl`).
+
+## Project layout
+
+```
+Gen/
+├── Gen/                  # Header-only generation library
+│   ├── Core/             # StringWriter, static_print, file/system commands
+│   ├── Cpp/              # C++ module, interface, and struct builders
+│   └── GLSL/             # GLSL shader AST and code emitter
+├── CompilerProxy/        # Compiler wrapper that executes generation commands
+└── Example/              # Sample project (C++ modules + GLSL shader)
+```
+
+## Examples
+
+### C++ modules, interfaces, and structs
+
+`Example/generate_example.ixx` defines a generator that emits a C++20 module:
+
+```cpp
+write_module<{}>(writer, "shape", "generate_example", [&] {
+    gen::Interface("Shape")
+        .fn(tp<int>, ID(area), Keywords::const_)
+        .fn(tp<void>, ID(foo), tp<int> - ID(arg)).write(writer);
+
+    gen::Struct("Material", {
+        tp<int> - ID(texture),
+        tp<float> - ID(opacity)
+    }).write(writer);
+});
+```
+
+Importing the generator module from `shape.ixx` triggers compilation of the generator, which writes `shape.ixx`. Application code then uses the generated types:
+
+```cpp
+import shape;
+
+class Rectangle : Shape { /* … */ };
+
+Material{42, 0.6f}.for_each([](auto name, auto&& value) {
+    std::cout << name << ": " << value << '\n';
+});
+```
+
+The `Struct` builder also emits a `for_each` member for simple field iteration.
+
+### GLSL shaders
+
+`Example/generate_shader.cpp` builds a Shadertoy-style `mainImage` shader using the GLSL AST in `Gen/GLSL/shader_ast.h`. Functions, scopes, control flow, and expressions are composed in C++ and written to `mainImage.glsl` at compile time. The AST supports post-generation transforms—for example, changing color constants before emission.
+
+## API overview
+
+| Component | Purpose |
+|-----------|---------|
+| `gen::StringWriter` | Fixed-capacity buffer for generated text |
+| `gen::static_print()` | Encode buffer contents into compiler diagnostics |
+| `gen::write_file()` | Queue a file write (path resolved from call site) |
+| `gen::system()` | Queue a shell command |
+| `gen::Interface` | Generate C++ abstract base classes |
+| `gen::Struct` | Generate C++ structs with optional `for_each` |
+| `gen::write_module()` | Generate C++20 module interface files |
+| `gen::glsl::Program` | Build and emit GLSL source from an AST |
+
+
+## License
+
+MIT — see [LICENSE](LICENSE).
